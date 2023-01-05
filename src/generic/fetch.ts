@@ -7,6 +7,27 @@ import {BFSCallback} from '../core/file_system';
 
 export const fetchIsAvailable = (typeof(fetch) !== "undefined" && fetch !== null);
 
+declare interface RequestInitWithPriority extends RequestInit {
+  priority?: "auto" | "high" | "low";
+}
+
+declare global {
+  interface Window {
+    fetch: (
+      input: RequestInfo,
+      init?: RequestInitWithPriority
+    ) => Promise<Response>;
+  }
+}
+
+const FETCH_SETTINGS: RequestInitWithPriority = {
+  cache: "no-cache",
+  keepalive: false,
+  priority: "high",
+  referrerPolicy: "no-referrer",
+  window: null,
+};
+
 /**
  * Asynchronously download a file as a buffer or a JSON object.
  * Note that the third function signature with a non-specialized type is
@@ -20,7 +41,7 @@ export function fetchFileAsync(p: string, type: string, cb: BFSCallback<any>): v
 export function fetchFileAsync(p: string, type: string, cb: BFSCallback<any>): void {
   let request;
   try {
-    request = fetch(p);
+    request = window.fetch(p, { mode: "cors", ...FETCH_SETTINGS });
   } catch (e) {
     // XXX: fetch will throw a TypeError if the URL has credentials in it
     return cb(new ApiError(ErrorCode.EINVAL, e.message));
@@ -54,7 +75,7 @@ export function fetchFileAsync(p: string, type: string, cb: BFSCallback<any>): v
  * @hidden
  */
 export function fetchFileSizeAsync(p: string, cb: BFSCallback<number>): void {
-  fetch(p, { method: 'HEAD' })
+  window.fetch(p, { method: 'HEAD', mode: "no-cors", ...FETCH_SETTINGS })
     .then((res) => {
       if (!res.ok) {
         return cb(new ApiError(ErrorCode.EIO, `fetch HEAD error: response returned code ${res.status}`));
