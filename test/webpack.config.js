@@ -15,6 +15,7 @@ for (let i = 1; i < outDirComponents.length; i++) {
 fs.writeFileSync(path.join(outDir, 'BFSBuffer.js'), 'module.exports = require(\'buffer\').Buffer;\n');
 
 module.exports = {
+  mode: 'production',
   devtool: 'source-map',
   entry: {
     './harness/test': require.resolve('../build/temp/tests/rollup/test.rollup.js'),
@@ -29,8 +30,6 @@ module.exports = {
     // Use our versions of Node modules.
     alias: {
       'buffer': path.posix.resolve(__dirname, '..', 'node_modules', 'buffer', 'index.js'),
-      'path': require.resolve('bfs-path'),
-      'process': require.resolve('bfs-process'),
       'BFSBuffer': require.resolve('../build/temp/tests/webpack/BFSBuffer.js')
     }
   },

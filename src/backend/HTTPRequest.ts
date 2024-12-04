@@ -221,7 +221,7 @@ export default class HTTPRequest extends BaseFileSystem implements FileSystem {
     if (isFileInode<Stats>(inode)) {
       stats = inode.getData();
       // At this point, a non-opened file will still have default stats from the listing.
-      if (stats.size < 0) {
+      if (!isLstat && stats.size < 0) {
         this._requestFileSizeAsync(path, function(e: ApiError, size?: number) {
           if (e) {
             return cb(e);

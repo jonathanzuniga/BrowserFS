@@ -233,21 +233,35 @@ export class UnlockedOverlayFS extends BaseFileSystem implements FileSystem {
             return this._writable.exists(oldPath, (exists: boolean) => {
               // simple case - both old and new are on the writable layer
               if (exists) {
-                return this._writable.rename(oldPath, newPath, cb);
+                return this.createParentDirectoriesAsync(newPath, (createDirsErr?: ApiError) => {
+                  if (createDirsErr) {
+                    return cb(createDirsErr);
+                  }
+
+                  return this._writable.rename(oldPath, newPath, cb);
+                });
               }
 
-              this._writable.mkdir(newPath, mode, (mkdirErr?: ApiError) => {
-                if (mkdirErr) {
-                  return cb(mkdirErr);
+              this.createParentDirectoriesAsync(newPath, (createDirsErr?: ApiError) => {
+                if (createDirsErr) {
+                  return cb(createDirsErr);
                 }
 
-                this._readable.readdir(oldPath, (err: ApiError, files?: string[]) => {
-                  if (err) {
-                    return cb();
+                this._writable.mkdir(newPath, mode, (mkdirErr?: ApiError) => {
+                  if (mkdirErr) {
+                    return cb(mkdirErr);
                   }
-                  copyDirContents(files!);
+
+                  this.readdir(oldPath, (err: ApiError, files?: string[]) => {
+                    if (err) {
+                      return cb(err);
+                    }
+                    copyDirContents(files!);
+                    this.deletePath(oldPath);
+                  });
                 });
               });
+
             });
           }
 
@@ -263,9 +277,10 @@ export class UnlockedOverlayFS extends BaseFileSystem implements FileSystem {
 
             this._readable.readdir(oldPath, (err: ApiError, files?: string[]) => {
               if (err) {
-                return cb();
+                return cb(err);
               }
               copyDirContents(files!);
+              this.deletePath(oldPath);
             });
           });
         }
@@ -323,6 +338,7 @@ export class UnlockedOverlayFS extends BaseFileSystem implements FileSystem {
       if (this._writable.existsSync(oldPath)) {
         this._writable.renameSync(oldPath, newPath);
       } else if (!this._writable.existsSync(newPath)) {
+        this.createParentDirectories(newPath);
         this._writable.mkdirSync(newPath, mode);
       }
 
@@ -333,6 +349,7 @@ export class UnlockedOverlayFS extends BaseFileSystem implements FileSystem {
           // Recursion! Should work for any nested files / folders.
           this.renameSync(path.resolve(oldPath, name), path.resolve(newPath, name));
         });
+        this.deletePath(oldPath);
       }
     } else {
       if (this.existsSync(newPath) && this.statSync(newPath, false).isDirectory()) {
@@ -355,7 +372,7 @@ export class UnlockedOverlayFS extends BaseFileSystem implements FileSystem {
     this._writable.stat(p, isLstat, (err: ApiError, stat?: Stats) => {
       if (err && err.errno === ErrorCode.ENOENT) {
         if (this._deletedFiles[p]) {
-          cb(ApiError.ENOENT(p));
+          return cb(ApiError.ENOENT(p));
         }
         this._readable.stat(p, isLstat, (err: ApiError, stat?: Stats) => {
           if (stat) {
@@ -393,7 +410,7 @@ export class UnlockedOverlayFS extends BaseFileSystem implements FileSystem {
     if (!this.checkInitAsync(cb) || this.checkPathAsync(p, cb)) {
       return;
     }
-    this.stat(p, false, (err: ApiError, stats?: Stats) => {
+    this.stat(p, true, (err: ApiError, stats?: Stats) => {
       if (stats) {
         switch (flag.pathExistsAction()) {
         case ActionType.TRUNCATE_FILE:
@@ -630,7 +647,7 @@ export class UnlockedOverlayFS extends BaseFileSystem implements FileSystem {
     if (!this.checkInitAsync(cb)) {
       return;
     }
-    this.stat(p, false, (err: ApiError, dirStats?: Stats) => {
+    this.stat(p, true, (err: ApiError, dirStats?: Stats) => {
       if (err) {
         return cb(err);
       }
@@ -656,7 +673,7 @@ export class UnlockedOverlayFS extends BaseFileSystem implements FileSystem {
           // Readdir in both, check delete log on read-only file system's files, merge, return.
           const seenMap: {[name: string]: boolean} = {};
           const filtered: string[] = wFiles.concat(rFiles.filter((fPath: string) =>
-            !this._deletedFiles[`${p}/${fPath}`]
+            !this._deletedFiles[`${p}${p === "/" ? "" : "/"}${fPath}`]
           )).filter((fPath: string) => {
             // Remove duplicates.
             const result = !seenMap[fPath];
@@ -685,7 +702,7 @@ export class UnlockedOverlayFS extends BaseFileSystem implements FileSystem {
     }
     try {
       contents = contents.concat(this._readable.readdirSync(p).filter((fPath: string) =>
-        !this._deletedFiles[`${p}/${fPath}`]
+        !this._deletedFiles[`${p}${p === "/" ? "" : "/"}${fPath}`]
       ));
     } catch (e) {
       // NOP.

@@ -1,7 +1,7 @@
 /**
  * Grab bag of utility functions used across the code.
  */
-import {FileSystem, BFSOneArgCallback, FileSystemConstructor} from './file_system';
+import {FileSystem, FileSystemOptions, BFSOneArgCallback, FileSystemConstructor} from './file_system';
 import {ErrorCode, ApiError} from './api_error';
 import levenshtein from './levenshtein';
 import * as path from 'path';
@@ -184,7 +184,7 @@ export function bufferValidator(v: object, cb: BFSOneArgCallback): void {
  * Checks that the given options object is valid for the file system options.
  * @hidden
  */
-export function checkOptions(fsType: FileSystemConstructor, opts: any, cb: BFSOneArgCallback): void {
+export function checkOptions(fsType: FileSystemConstructor, opts: FileSystemOptions = {}, cb: BFSOneArgCallback): void {
   const optsInfo = fsType.Options;
   const fsName = fsType.Name;
 

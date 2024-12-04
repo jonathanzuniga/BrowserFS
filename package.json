@@ -38,10 +38,8 @@
     "@types/wicg-file-system-access": "^2020.9.4",
     "archiver": "~2.1.1",
     "async-es": "~2.6.1",
-    "bfs-path": "~0.1.2",
-    "bfs-process": "~0.1.6",
     "body-parser": "~1.18.3",
-    "buffer": "~5.1.0",
+    "buffer": "^6.0.3",
     "detect-browsers": "~2.0.0",
     "dropbox": "~4.0.9",
     "express": "~4.16.3",
@@ -114,6 +112,8 @@
   },
   "dependencies": {
     "async": "~2.6.1",
-    "pako": "~1.0.6"
+    "pako": "^2.1.0",
+    "path-browserify": "^1.0.1",
+    "process": "^0.11.10"
   }
 }
