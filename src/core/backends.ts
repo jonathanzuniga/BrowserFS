@@ -1,6 +1,7 @@
 import {FileSystemConstructor, BFSCallback, FileSystem} from './file_system';
 import {ApiError} from './api_error';
 import {checkOptions} from './util';
+import FileSystemAccess from '../backend/FileSystemAccess';
 import InMemory from '../backend/InMemory';
 import IndexedDB from '../backend/IndexedDB';
 import MountableFileSystem from '../backend/MountableFileSystem';
@@ -10,7 +11,7 @@ import ZipFS from '../backend/ZipFS';
 import IsoFS from '../backend/IsoFS';
 
 // Monkey-patch `Create` functions to check options before file system initialization.
-[InMemory, IndexedDB, IsoFS, MountableFileSystem, OverlayFS, HTTPRequest, ZipFS].forEach((fsType: FileSystemConstructor) => {
+[FileSystemAccess,  InMemory, IndexedDB, IsoFS, MountableFileSystem, OverlayFS, HTTPRequest, ZipFS].forEach((fsType: FileSystemConstructor) => {
   const create = fsType.Create;
   fsType.Create = function(opts?: any, cb?: BFSCallback<FileSystem>): void {
     const oneArg = typeof(opts) === "function";
@@ -32,7 +33,7 @@ import IsoFS from '../backend/IsoFS';
 /**
  * @hidden
  */
-const Backends = { InMemory, IndexedDB, IsoFS, MountableFileSystem, OverlayFS, HTTPRequest, XmlHttpRequest: HTTPRequest, ZipFS };
+const Backends = { FileSystemAccess, InMemory, IndexedDB, IsoFS, MountableFileSystem, OverlayFS, HTTPRequest, XmlHttpRequest: HTTPRequest, ZipFS };
 // Make sure all backends cast to FileSystemConstructor (for type checking)
 const _: {[name: string]: FileSystemConstructor} = Backends;
 // tslint:disable-next-line:no-unused-expression
